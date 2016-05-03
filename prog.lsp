@@ -28,7 +28,7 @@
           ;(action_tile "accept" "(accept)") 
   (start_dialog)
   (unload_dialog dcl_id)
-  (princ a)
+  
  )
 
  (defun countPoly()                                                       ;функции подсчета примитивов
@@ -50,22 +50,28 @@
         (setq h'())
         (setq i 0)  
      (while ( < i (length blk))
-            (if (= (car (nth i blk)) 10)            ;вершины сплайна
+            (if (= (car (nth i blk)) 10)           ;вершины сплайна
                 (setq h(cons  (nth i blk) h))
             )           
         (setq i(+ i 1))    
      )
              
-  (if (setq f(open path "a"))                                       ; запись в файл 
-      (progn                                                    
+  (if (setq f(open path "a"))                                        ; запись в файл 
+      (progn                                                     
            (write-line "Spline:" f)                              
-           (princ "layer:" f)                                       ; слой       
+           (princ "layer:" f)                                        ; слой       
            (write-line (vl-princ-to-string (cdr(assoc 8 blk))) f)
-           (princ "color:" f)                                       ;цвет 
-           (write-line (vl-princ-to-string (cdr(assoc 62 blk))) f)   
-           (princ "line type:" f)                                   ;тип линии 
-           (write-line (vl-princ-to-string (cdr(assoc 6 blk))) f)     
-           (princ "vertex:" f)                                       ;вершины
+           (princ "color:" f)     
+           (if (= (cdr(assoc 62 blk)) nil)                            ;проверка если цвет установлен bylayer
+               (write-line "By layer" f) 
+               (write-line (vl-princ-to-string (cdr(assoc 62 blk))) f)
+           )                                                          ;цвет
+           (princ "line type:" f)                                     ;тип линии 
+           (if (= (cdr(assoc 6 blk)) nil)                             ;проверка если тип линии установлен bylayer
+               (write-line "By layer" f) 
+               (write-line (vl-princ-to-string (cdr(assoc 6 blk))) f)
+           )    
+           (princ "vertex:" f)                                        ;вершины
            (write-line (vl-princ-to-string h) f) 
            (write-line " " f)    
            (terpri)
@@ -92,10 +98,16 @@
            (write-line (vl-princ-to-string (cdr(assoc 40 enlist))) f) 
            (princ "layer:" f)                                                  ;слой       
            (write-line (vl-princ-to-string (cdr(assoc 8 enlist))) f)
-           (princ "color:" f)                                                  ;цвет окружности 
-           (write-line (vl-princ-to-string (cdr(assoc 62 enlist))) f)   
-           (princ "line type:" f)                                              ;тип линии 
-           (write-line (vl-princ-to-string (cdr(assoc 6 enlist))) f) 
+           (princ "color:" f)   
+           (if (= (cdr(assoc 62 blk)) nil)                            ;проверка если цвет установлен bylayer
+               (write-line "By layer" f) 
+               (write-line (vl-princ-to-string (cdr(assoc 62 blk))) f)
+           )                                                          ;цвет
+           (princ "line type:" f)                                     ;тип линии 
+           (if (= (cdr(assoc 6 blk)) nil)                             ;проверка если тип линии установлен bylayer
+               (write-line "By layer" f) 
+               (write-line (vl-princ-to-string (cdr(assoc 6 blk))) f)
+           )    
            (write-line " " f)      
        )
     (close f)
@@ -153,15 +165,24 @@
     (write-line "Polyline:" f) 
     (setq i 0) 
     (setq j 0)  
+    (setq e 0)
     (setq wq (* (length lt) 1))
-    (princ "Radius:" f)                                               ;радиус
+    (princ "Radius:" f)                                                ;радиус
       (while ( < i wq)
-        (if  (=  (type  (nth i lt)) 'REAL)  
+        (if  (=  (type  (nth i lt)) 'REAL)
+          (progn
            (write-line (vl-princ-to-string (nth i lt)) f) 
+           (setq e(+ e 1))
+          )
         )
        (setq i(+ i 1))   
       )
+      (if (= e 0)
+         (write-line "0" f) 
+      )
     (setq i 0)
+     (setq col 0)
+      (setq tpl 0)
       (while ( < i wq)
         (if  (=  (type  (nth i lt)) 'LIST)   
            (progn      
@@ -171,22 +192,41 @@
                   (write-line (vl-princ-to-string (cdr (nth i lt))) f) 
                 )
               ) 
-        (if (= (car (nth i lt)) 6)
-          (progn 
-            (princ "color:" f)                                       ;цвет
-            (write-line (vl-princ-to-string (cdr (nth i lt))) f)   
-         )
-        )
         (if (= (car (nth i lt)) 62)
           (progn 
+            (princ "color:" f)                                       ;цвет
+            (write-line (vl-princ-to-string (cdr (nth i lt))) f)  
+             (setq col(+ col 1)) 
+         )
+        )
+        
+       
+        (if (= (car (nth i lt)) 6)              
+          (progn 
             (princ "line type:" f)                                  ;цвет линии
-            (write-line (vl-princ-to-string (cdr (nth i lt))) f)   
+            (write-line (vl-princ-to-string (cdr (nth i lt))) f) 
+            (setq tpl(+ tpl 1))   
           )
-        )  
+        )
+
            )
        )
    (setq i(+ i 1)) 
       )
+      (if (= col 0)                                                  ;проверка если цвет установлен bylayer                                         
+          (progn
+            (princ "color:" f)
+            (write-line "By layer" f) 
+           
+         )
+      )  
+      (if (= tpl 0)                                                  ;проверка если тип линии установлен bylayer
+          (progn
+            (princ "line type:" f) 
+            (write-line "By layer" f) 
+           
+          )
+      ) 
      (princ "vertex:" f)                                             ;вершины
      (write-line (vl-princ-to-string hi) f) 
      (write-line " " f)  
